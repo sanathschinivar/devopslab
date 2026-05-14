@@ -1,1 +1,224 @@
-Hello VVCE
+https://g.co/gemini/share/21473e82c58f
+
+
+
+
+
+Program 4: Create and Run a Docker Image for a Local Application
+Goal: Containerize a simple local Java application.
+
+Step 1: Create the Files
+
+Create a new folder on the desktop (e.g., docker_app).
+
+Inside it, create a file named Calci.java and add this code:
+
+Java
+public class Calci {
+    public static void main(String args[]){
+        System.out.println("Test from Docker!");
+    }
+}
+Create a file named exactly Dockerfile (no extension) and add this configuration:
+
+Dockerfile
+FROM openjdk
+WORKDIR /app
+COPY . /app
+RUN javac Calci.java
+CMD ["java", "Calci"]
+Step 2: Build and Run
+
+Open Command Prompt, and navigate to your folder (e.g., cd Desktop\docker_app).
+
+Build the Docker image (don't forget the period at the end!):
+
+Bash
+docker build -t program4 .
+Run the container:
+
+Bash
+docker run --name javaappli program4
+
+
+Program 6: Jenkins CI/CD Pipeline (The GitHub Method)
+Goal: Automate building and pushing a Docker image using code stored on GitHub.
+
+Step 1: Setup GitHub Repository
+
+Create a Public repository on GitHub.
+
+Add HelloWorld.java:
+
+Java
+public class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("Hello, Jenkins Pipeline!");
+    }
+}
+Add Dockerfile (Using the updated Java 17 image):
+
+Dockerfile
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
+COPY . /app
+RUN javac HelloWorld.java
+CMD ["java", "HelloWorld"]
+Add Jenkinsfile (IMPORTANT: Replace YOUR_USERNAME with your actual Docker Hub username!):
+
+Groovy
+pipeline {
+    agent any
+    environment {
+        DOCKERHUB_CREDENTIALS = 'Docker-credentials' 
+        IMAGE_NAME = 'YOUR_USERNAME/new_docker_image' 
+    }
+    stages {
+        stage('Build Java') { steps { bat 'javac HelloWorld.java' } }
+        stage('Run Java') { steps { bat 'java HelloWorld' } }
+        stage('Build Docker') { steps { bat 'docker build -t %IMAGE_NAME%:latest .' } }
+        stage('Login DockerHub') {
+            steps {
+               withCredentials([usernamePassword(credentialsId: 'Docker-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    bat 'echo %PASS%| docker login -u %USER% --password-stdin'
+                }
+            }
+        }
+        stage('Push Image') { steps { bat 'docker push %IMAGE_NAME%:latest' } }
+    }
+}
+Copy the HTTPS URL of your repository.
+
+Step 2: Generate Docker Hub Token
+
+Log into Docker Hub using your GitHub login.
+
+Go to Account Settings -> Security -> New Access Token.
+
+Generate a token with Read, Write, Delete permissions and copy it.
+
+Step 3: Configure Jenkins
+
+In Jenkins, go to Manage Jenkins -> Credentials -> System -> (global) -> Add Credentials.
+
+Kind: Username with password.
+
+Username: Your Docker Hub username.
+
+Password: Your Docker Hub Token.
+
+ID: Docker-credentials (Must be exact!). Click Create.
+
+Go to Dashboard -> New Item -> Pipeline -> Name it.
+
+Scroll down to the Pipeline section, change Definition to Pipeline script from SCM.
+
+Select Git, paste your GitHub URL, ensure the branch is */main (or */master), and hit Save.
+
+Click Build Now.
+
+
+**If build fails due to login/broken credentials, add bat 'docker logout' to the Build Docker Image stage**
+
+
+
+
+
+
+Program 7: Create a Maven Project in a CI/CD Pipeline
+Goal: Use Maven to manage dependencies and read a JSON file.
+
+Step 1: Set up the Maven Project in Eclipse
+
+Open Eclipse -> File -> New -> Maven Project.
+
+Check "Create a simple project" (or use maven-archetype-quickstart). Name Group ID and Artifact ID ex1.
+
+Open pom.xml and add the json-simple dependency inside the <dependencies> tag:
+
+XML
+<dependencies>
+    <dependency>
+        <groupId>com.googlecode.json-simple</groupId>
+        <artifactId>json-simple</artifactId>
+        <version>1.1.1</version>
+    </dependency>
+</dependencies>
+Step 2: Add Files and Code
+
+Right-click the project root, create a folder named JSON, and inside it, a file demo1.json:
+
+JSON
+{
+    "firstname": "shilpa",
+    "lastname": "KS"
+}
+In src/main/java, create a package named maven.lab6.
+
+Create a class demo.java inside that package:
+
+Java
+package maven.lab6;
+
+import java.io.FileReader;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
+public class demo {
+    public static void main(String[] args) throws Exception {
+        JSONParser jsonparser = new JSONParser();
+        FileReader reader = new FileReader(".\\JSON\\demo1.json");
+        JSONObject empjsonobj = (JSONObject) jsonparser.parse(reader);
+        
+        System.out.println("first name:" + empjsonobj.get("firstname"));
+        System.out.println("Last name:" + empjsonobj.get("lastname"));
+    }
+}
+Run as Java Application.
+
+
+
+
+
+
+
+
+
+Program 8: Integrate Slack Communication with Jenkins
+Goal: Send Jenkins build status notifications to a Slack channel.
+
+Step 1: Slack Setup
+
+In Slack, create a channel #aiml.
+
+Browse the Slack App Directory, search for Jenkins CI, and add it to #aiml.
+
+Copy the Integration Token (Secret Key) Slack gives you on the setup screen.
+
+Crucial: If #aiml is a private channel, type /invite @Jenkins CI (or whatever the app is named) in the channel chat to let the bot in!
+
+Step 2: Jenkins Global Setup
+
+In Jenkins: Manage Jenkins -> Plugins. Install the Slack Notification plugin.
+
+Go to Manage Jenkins -> System. Scroll down to Slack.
+
+Add your Slack Workspace name (just the name, no URLs).
+
+Next to Credentials, click Add.
+
+Kind: Secret text.
+
+Secret: Paste your Slack Integration Token. * Give it an ID and Save.
+
+Select this credential in the dropdown, set Default channel to #aiml, and Save.
+
+Step 3: Create the Job
+
+Create a Freestyle project in Jenkins.
+
+Add Build Step -> Execute Windows batch command: java -version.
+
+Add Post-build Action -> Slack Notifications. Select the statuses you want (e.g., Success, Failure).
+
+Save and click Build Now. Check your Slack channel for the message!
